@@ -1,10 +1,5 @@
 const http = require('http');
 var rp = require('request-promise');
-const lowdb = require('lowdb');
-const fileAsync = require('lowdb/lib/storages/file-async');
-const db = lowdb('db.json', {
-	storage: fileAsync
-});
 var cron = require('cron').CronJob;
 
 function YoBitApi() {
@@ -17,7 +12,7 @@ exports.YoBitApi = YoBitApi;
 YoBitApi.prototype.ticker = function(currency, callback) {
 	if (!currency) {callback("wrong input")}
 	var options = {
-		uri: this.ticker_uri+currency,
+		uri: this.ticker_uri+currency+'?ignore_invalid=1',
 
 		headers:{
 			'Content-Type': 'application/json'
@@ -25,6 +20,7 @@ YoBitApi.prototype.ticker = function(currency, callback) {
 
 		json: true
 	}
+	console.log(options.uri);
 	rp(options)
 		.then(function(response) {
 			console.log("###Response body###");
@@ -58,6 +54,6 @@ YoBitApi.prototype.info = function(callback) {
 YoBitApi.prototype.show_favorites = function(user_id, callback) {
 	
 };
-YoBitApi.prototype.add_favorite = function(user_id, currency, callback) {
-	// body...
+YoBitApi.prototype.add_favorite = async function(user_id, currency, callback) {
+	//const fav = await db.get('users').map(user_id).value();
 };
