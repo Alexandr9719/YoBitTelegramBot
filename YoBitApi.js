@@ -1,54 +1,63 @@
 const http = require('http');
+var rp = require('request-promise');
+const lowdb = require('lowdb');
+const fileAsync = require('lowdb/lib/storages/file-async');
+const db = lowdb('db.json', {
+	storage: fileAsync
+});
+var cron = require('cron').CronJob;
+
 function YoBitApi() {
-	this.host = 'yobit.net';
+	this.info_uri = 'https://yobit.net/api/3/info/';
+	this.depth_uri = 'https://yobit.net/api/3/depth/';
+	this.ticker_uri = 'https://yobit.net/api/3/ticker/';
+	this.trades_uri = 'https://yobit.net/api/3/trades/';
 };
 exports.YoBitApi = YoBitApi;
-YoBitApi.prototype.ticker = function(currency) {
-	var response_json = {};
-	let path = "/api/3/ticker/"+currency.toString();
+YoBitApi.prototype.ticker = function(currency, callback) {
+	if (!currency) {callback("wrong input")}
 	var options = {
-		hostname: this.host,
-		port: 80,
-		path: path,
-		method: 'POST',
+		uri: this.ticker_uri+currency,
+
 		headers:{
 			'Content-Type': 'application/json'
-		}
-	};
-	var req = http.request(options, function(res) {
-		res.setEncoding('utf8');
-		res.on('data', function (data) {
-	    	response_json = JSON.parse(data);
-		});
-	});
-	req.on('error', function(e) {
-	  	console.log('problem with request: ' + e.message);
-	  	return (e.message);
-	});
-	req.end();
-	return response_json;
+		},
 
-	// var req;
-	// var promise = new Promise(function(resolve, reject) {
-	// 	req = http.request(options, function(res) {
-	// 		res.setEncoding('utf8');
-	// 		res.on('data', function (data) {
-	//     		response_json = JSON.parse(data);
-	//     		console.log(response_json);
-	// 		});
-	// 	});
-	// 	req.on('error', function(e) {
-	//   		console.log('problem with request: ' + e.message);
-	//   		reject(e.message);
-	// 	});
-	// 	resolve(response_json);
-	// });
-	// promise.then(function(value) {
-	// 	req.end();
-	// 	return value;
-	// }, function(reason) {
-	// 	req.end();
-	// 	return reason;
-	// })
+		json: true
+	}
+	rp(options)
+		.then(function(response) {
+			console.log("###Response body###");
+			console.log(Object.keys(response));
+			console.log('###End response###');
+			// return response;
+			callback(response);
+		})
+		.catch(function(err) {
+			console.log(err);
+			// return err;
+			callback('YoBit problem');
+		})
+};
+YoBitApi.prototype.info = function(callback) {
+	var options = {
+		uri: this.info_uri,
+		headers:{
+			'Content-Type': 'application/json'
+		},
+		json: true
+	}
+	rp(options)
+		.then(function(response) {
+			callback(response);
+		})
+		.catch(function(err) {
+			callback(err);
+		})
+};
+YoBitApi.prototype.show_favorites = function(user_id, callback) {
 	
+};
+YoBitApi.prototype.add_favorite = function(user_id, currency, callback) {
+	// body...
 };
