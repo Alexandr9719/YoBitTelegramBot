@@ -1,81 +1,101 @@
 const http = require('http');
 var rp = require('request-promise');
 var cron = require('cron').CronJob;
+const log4js = require('log4js');
+log4js.configure({
+  appenders: {
+    everything: {
+      type: 'file',
+      filename: 'YoBitApi-file.log',
+      maxLogSize: 10485760,
+      backups: 3,
+      compress: true
+    }
+  },
+  categories: {
+    default: {
+      appenders: ['everything'],
+      level: 'debug'
+    }
+  }
+});
+const logger = log4js.getLogger();
 
 function YoBitApi() {
-    this.info_uri = 'https://yobit.net/api/3/info/';
-    this.depth_uri = 'https://yobit.net/api/3/depth/';
-    this.ticker_uri = 'https://yobit.net/api/3/ticker/';
-    this.trades_uri = 'https://yobit.net/api/3/trades/';
+  this.info_uri = 'https://yobit.net/api/3/info/';
+  this.depth_uri = 'https://yobit.net/api/3/depth/';
+  this.ticker_uri = 'https://yobit.net/api/3/ticker/';
+  this.trades_uri = 'https://yobit.net/api/3/trades/';
 };
 exports.YoBitApi = YoBitApi;
-YoBitApi.prototype.ticker = async function(currency, callback, failure) {
-    var options = {
-        uri: this.ticker_uri + currency,
+YoBitApi.prototype.ticker = async function(currency, success, failure) {
+  var options = {
+    uri: this.ticker_uri + currency,
 
-        headers: {
-            'Content-Type': 'application/json'
-        },
+    headers: {
+      'Content-Type': 'application/json'
+    },
 
-        json: true
-    }
-    console.log("ticker uri: " + options.uri);
-    await rp(options)
-        .then(function(response) {
-            callback(response);
-        }, function(err) { console.log(err); failure(err)});
+    json: true
+  }
+  await rp(options)
+    .then(function(response) {
+      success(response);
+    }, function(err) {
+      logger.debug(err);
+      failure(err)
+    });
 };
-YoBitApi.prototype.info = async function(callback) {
-    var options = {
-        uri: this.info_uri,
+YoBitApi.prototype.info = async function(success) {
+  var options = {
+    uri: this.info_uri,
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    json: true
+  }
+  await rp(options)
+    .then(function(response) {
+      success(response);
+    })
+    .catch(function(err) {
+      logger.debug(err);
+      throw err;
+    })
+};
+YoBitApi.prototype.check_valid = async function(currency_list, success, failure) {
+  var self = this;
+  async function query(currency) {
+    if (!currency) {
+      ('repair all invalid_pair');
+      failure('All currency pairs are incorrect');
+    } else {
+      var options = {
+        uri: self.ticker_uri + currency,
         headers: {
-            'Content-Type': 'application/json'
+          'Content-Type': 'application/json'
         },
         json: true
-    }
-    await rp(options)
+      }
+      await rp(options)
         .then(function(response) {
-            callback(response);
-        })
-        .catch(function(err) {
-            throw err;
-        })
-};
-YoBitApi.prototype.check_valid = async function(currency_list, callback, failure) {
-    var self = this;
-    async function query(currency) {
-        if (!currency) { console.log('repair all invalid_pair');
-            failure('All currency pairs are incorrect'); } else {
-            var options = {
-                uri: self.ticker_uri + currency,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                json: true
-            }
-            console.log("check_valid uri: " + options.uri);
-            await rp(options)
-                .then(function(response) {
-                    if (response.success == 0) {
-                        console.log(response);
-                        var invalid_pair = response.error.substring(response.error.indexOf(':')).substring(2);
-                        //console.log("invalid pair: " + response.error.substring(response.error.indexOf(':')).substring(2).length);
-                        //console.log("Index item: " + currency.indexOf(response.error.substring(response.error.indexOf(':')).substring(2).trim()));
-                        currency = currency.replace(invalid_pair, '');
-                        if (currency[0] == '-' || currency[currency.length - 1] == '-')
-                            currency = currency.replace('-', ' ').trim().replace(' ', '-');
-                        console.log("new query string " + currency);
-                        query(currency);
-                    } else {
-                        console.log('return: ' + Object.keys(response));
-                        console.log(currency);
-                        callback(currency);
-                    }
-                }, function(err) { console.log(err); failure(err); });
-        }
+          if (response.success == 0) {
+            (response);
+            var invalid_pair = response.error.substring(response.error.indexOf(':')).substring(2);
+            //("invalid pair: " + response.error.substring(response.error.indexOf(':')).substring(2).length);
+            //("Index item: " + currency.indexOf(response.error.substring(response.error.indexOf(':')).substring(2).trim()));
+            currency = currency.replace(invalid_pair, '');
+            if (currency[0] == '-' || currency[currency.length - 1] == '-')
+              currency = currency.replace('-', ' ').trim().replace(' ', '-');
+            query(currency);
+          } else {
+            success(currency);
+          }
+        }, function(err) {
+          logger.debug(err);
+          failure(err);
+        });
     }
-    await query(currency_list);
-    // console.log('callback check_valid: ' + currency_list);
-    // process.exit();
-    // callback(currency_list);
+  }
+  await query(currency_list);
 };
