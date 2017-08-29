@@ -26,6 +26,7 @@ function MongoDriver() {
   MongoClient.connect(this.url, function(err, db) {
     if (err) {
       logger.debug(err);
+      process.exit();
     }
 		else {
 			db.createCollection("users", function(err, res) {
@@ -38,7 +39,9 @@ function MongoDriver() {
 		}
   });
 }
+
 exports.MongoDriver = MongoDriver;
+
 MongoDriver.prototype.has_user = async function(user_id, success, failure) {
   await MongoClient.connect(this.url, function(err, db) {
     if (err) {
@@ -70,6 +73,7 @@ MongoDriver.prototype.has_user = async function(user_id, success, failure) {
     }
   });
 };
+
 MongoDriver.prototype.add_to_favorites = async function(user_id, currency_list, failure) {
   var self = this;
   self.get_favorites(user_id, await
@@ -104,9 +108,11 @@ MongoDriver.prototype.add_to_favorites = async function(user_id, currency_list, 
             });
         }
       });
+    }, await function (err) {
+      failure(err);
     });
-
 };
+
 MongoDriver.prototype.get_favorites = async function(user_id, success, failure) {
   await MongoClient.connect(this.url, function(err, db) {
     if (err) {
@@ -118,14 +124,17 @@ MongoDriver.prototype.get_favorites = async function(user_id, success, failure) 
       }, function(err, res) {
         if (err) {
           logger.debug(err);
+          db.close();
           failure(err);
+        }else {
+          db.close();
+          success(res.favorites);
         }
-        db.close();
-        success(res.favorites);
       });
     }
   });
 };
+
 MongoDriver.prototype.delete_favorites = async function(user_id, currency_list, failure) {
   var self = this;
   self.get_favorites(user_id, await
@@ -162,7 +171,21 @@ MongoDriver.prototype.delete_favorites = async function(user_id, currency_list, 
         }
       });
     },
-    function(err) {
+    await function(err) {
       failure(err);
     });
+};
+
+MongoDriver.prototype.set_range = async function (user_id, currency_list, range, success, failure) {
+  var self = this;
+  self.get_favorites(user_id, await function (res) {
+    for (item of currency_list) {
+      if(res[item]){
+        console.log(res[item]);
+      }
+    }
+    success();
+  }, await function (err) {
+    failure(err);
+  });
 };

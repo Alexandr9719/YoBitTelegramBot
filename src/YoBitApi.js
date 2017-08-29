@@ -82,8 +82,6 @@ YoBitApi.prototype.check_valid = async function(currency_list, success, failure)
           if (response.success == 0) {
             (response);
             var invalid_pair = response.error.substring(response.error.indexOf(':')).substring(2);
-            //("invalid pair: " + response.error.substring(response.error.indexOf(':')).substring(2).length);
-            //("Index item: " + currency.indexOf(response.error.substring(response.error.indexOf(':')).substring(2).trim()));
             currency = currency.replace(invalid_pair, '');
             if (currency[0] == '-' || currency[currency.length - 1] == '-')
               currency = currency.replace('-', ' ').trim().replace(' ', '-');
@@ -98,4 +96,9 @@ YoBitApi.prototype.check_valid = async function(currency_list, success, failure)
     }
   }
   await query(currency_list);
+};
+YoBitApi.prototype.queries_handler = async function (user_id, success, failure) {
+  await (async function () {
+
+  }());
 };
